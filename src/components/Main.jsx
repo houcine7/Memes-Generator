@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useState } from "react";
+
 import axios from "axios";
 
 const options1 = {
@@ -15,86 +16,145 @@ const getMemes = async (options) => {
 
 const getMeme = async (options) => {
   const response = await axios.request(options);
-  console.log(response);
   return response.data;
 };
 const memes = getMemes(options1);
 
+//inputs
+
+const TextMemeInput = ({ setText, id }) => {
+  // console.log(id);
+  return (
+    <input
+      className="input form-control"
+      type="text"
+      placeholder="Text Top"
+      required
+      onChange={(e) =>
+        setText((prevTexts) => {
+          prevTexts[id] = e.target.value;
+          return prevTexts;
+        })
+      }
+    />
+  );
+};
+
+//Loader function
+
+const displyaLoading = () => {
+  const loader = document.querySelector(".loader");
+  loader.style.display = "flex";
+  setTimeout(() => (loader.style.display = "none"), 3000);
+};
+
 const Main = () => {
+  // state declaration
   const [img, setImage] = useState("./son.png");
-  const [templateId, setTemplateId] = useState(1);
-  const [textTop, setTextTop] = useState("");
-  const [textBottom, setTextBottom] = useState("");
+  const [api, setApi] = useState({
+    template_id: 1,
+    boxCount: 2,
+  });
+  const [memeTexts, setMemeTexts] = useState([]);
+
+  // get a random meme picture from the api
   const handelClick = () => {
     const disabled = document.querySelector(".disabled");
     if (disabled) {
       disabled.classList.remove("disabled");
     }
+
+    // loader effect
+    displyaLoading();
+    // handel promise
     memes.then((response) => {
       let randomNumber = Math.floor(Math.random() * 100);
+      setApi({
+        template_id: response[randomNumber].id,
+        boxCount: response[randomNumber].box_count,
+      });
       setImage(`${response[randomNumber].url}`);
-      setTemplateId(`${response[randomNumber].id}`);
+      setMemeTexts(() => {
+        let newArrayTexts = [];
+        for (let i = 0; i < response[randomNumber].box_count; i++) {
+          newArrayTexts.push("text" + i);
+        }
+        return newArrayTexts;
+      });
     });
   };
+  //
+
+  // post to api to generateMeme
   const generateMeme = (e) => {
     e.preventDefault();
+    displyaLoading();
     const options = {
       method: "POST",
       url: "https://api.imgflip.com/caption_image",
 
       params: {
-        template_id: `${templateId}`,
+        template_id: `${api.template_id}`,
         username: "houssainaddali",
         password: "Hazard10",
-        text0: `${textTop}`,
-        text1: `${textBottom}`,
+        "boxes[0][text]": `${memeTexts[0] || ""}`,
+
+        "boxes[1][text]": `${memeTexts[1] || ""}`,
+        "boxes[2][text]": `${memeTexts[2] || ""}`,
+
+        "boxes[3][text]": `${memeTexts[3] || ""}`,
+
+        "boxes[4][text]": `${memeTexts[4] || ""}`,
       },
     };
     const memeGenerated = getMeme(options);
     memeGenerated.then((response) => {
-      console.log(response.data.url);
       setImage(`${response.data.url}`);
     });
   };
 
+  ///
+
   return (
-    <div className="meme" style={{ padding: "7rem" }}>
-      <div className="container">
-        <form
-          onSubmit={(e) => generateMeme(e)}
+    <div className="meme" style={{ padding: "7rem 10px" }}>
+      <form
+        className="container form center text-center"
+        onSubmit={(e) => generateMeme(e)}
+        style={{
+          textAlign: "center",
+          display: "flex",
+          gap: "1rem",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
           style={{
             display: "flex",
             gap: "1rem",
             flexWrap: "wrap",
             alignItems: "center",
-
             justifyContent: "center",
           }}
         >
-          <input
-            className="input form-control"
-            type="text"
-            placeholder="Text Top"
-            required
-            onChange={(e) => setTextTop(e.target.value)}
-          />
-          <input
-            className="input form-control"
-            type="text"
-            placeholder="Text Bottom"
-            required
-            onChange={(e) => setTextBottom(e.target.value)}
-          />
-          <button
-            className="btn disabled btn-success btn-lg btn-block "
-            style={{ textAlign: "center", width: "400px" }}
-          >
-            Generate meme
-          </button>
-        </form>
-      </div>
+          {memeTexts.map((item, index) => (
+            <TextMemeInput key={index} setText={setMemeTexts} id={index} />
+          ))}
+        </div>
+
+        <button
+          className="btn disabled btn-success btn-lg btn-block "
+          style={{
+            maxWidth: "400px",
+          }}
+        >
+          Generate meme
+        </button>
+      </form>
+
       <div
-        className="container center "
+        className="center "
         style={{ textAlign: "-webkit-center", paddingTop: "2rem" }}
       >
         <button
